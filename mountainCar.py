@@ -1,6 +1,6 @@
 import gym
 import numpy as np
-env = gym.make('MountainCar-v0')
+env = gym.make('MountainCar-v0', render_mode='human',new_step_api=True)
 print('观测空间 = {}'. format(env.observation_space))
 print('动作空间 = {}'. format(env.action_space))
 print('观测范围 = {} ~ {}'. format(env.observation_space.low,env.observation_space.high))
@@ -29,7 +29,7 @@ def play(env, agent, render=False, train=False):
         if render: # 判断是否显示
             env.render() # 显示图形界面
         action = agent.decide(observation)
-        next_observation, reward, done, _ = env.step(action) # 执行动作
+        next_observation, reward, done, truncated, _ = env.step(action) # 执行动作
         episode_reward += reward # 收集回合奖励
         if train: # 判断是否训练智能体
             agent.learn(observation, action, reward, done) # 学习
@@ -38,7 +38,7 @@ def play(env, agent, render=False, train=False):
         observation = next_observation
     return episode_reward # 返回回合总奖励
 
-env.seed(3) # 设置随机种子，让结果可复现
+env.reset(seed=3) # 设置随机种子，让结果可复现
 episode_reward = play(env, agent, render=True)
 print('回合奖励 = {}'. format(episode_reward))
 # episode_rewards = [play(env, agent) for _ in range(100)]

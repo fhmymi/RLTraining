@@ -38,15 +38,14 @@ def compute_loss(n, log_p):
 
 if __name__ == '__main__':
     env = gym.make('CartPole-v1', render_mode='human')
-    env.reset(seed=543)
+    state1, _ = env.reset(seed=543)
     torch.manual_seed(543)
 
     policy = CartPolePolicy()
     optimizer = torch.optim.Adam(policy.parameters(), lr=0.01)
-    # policy.eval()
 
-    max_episodes = 1000
-    max_action = 1000
+    max_episodes = 100
+    max_action = 500
     max_step = 5000
 
     for episode in range(1, max_episodes + 1):
@@ -60,11 +59,11 @@ if __name__ == '__main__':
             action = m.sample()
             state, reward, terminated, truncated, info = env.step(action.item())
             if terminated:
-                print(f"Episode {episode} finished after {step + 1} timesteps")
+                print(f"Episode {episode} finished after {step} timesteps")
                 break
             log_p.append(m.log_prob(action))
         if step > max_step:
-            print(f"Episode {episode} finished after {step} timesteps")
+            print(f"Episode {episode} clear the stage")
             break
 
         optimizer.zero_grad()
@@ -74,17 +73,3 @@ if __name__ == '__main__':
         if episode % 10 == 0:
             print(f"Episode {episode} Run steps: {step}")
     torch.save(policy.state_dict(), 'cartpole_policy.pth')
-
-    # start_time = time.time()
-    # fail = False
-    # for step in range(1,max_action+1):
-    #     time.sleep(0.1)
-    #     state = torch.from_numpy(state).float().unsqueeze(0)
-    #     action_probs = policy(state)
-    #     action = torch.argmax(action_probs, dim=1).item()
-    #     state, reward, terminated, truncated, info = env.step(action)
-    #     print(f'step:{step}, reward:{reward},state:{state}')
-    #     if terminated or truncated:
-    #         fail = True
-    #         print(f"Game Over! played time {time.time() - start_time}")
-    #         break

@@ -36,22 +36,20 @@ if __name__ == '__main__':
     env = gym.make('CartPole-v1', render_mode='human')
     state, _ = env.reset()
     policy = CartPolePolicy()
-    policy.load_state_dict(torch.load('cartpole_policy.pth'))  # 注意文件路径
+    policy.load_state_dict(torch.load('./cartpole_policy.pth'))  # 注意文件路径
     policy.eval()
 
     start_time = time.time()
     max_action = 1000
     step = 0
-    fail = False
-    for step in range(1, max_action+1):
+    done = False
+    while not done:
         env.render()
+        step += 1
         state = torch.from_numpy(state).float().unsqueeze(0)
         action_probs = policy(state)
         action = torch.argmax(action_probs, dim=1).item()
         state, reward, terminated, truncated, info = env.step(action)
-        print(f'step:{step}, reward:{reward},state:{state}')
-        time.sleep(0.1)
         if terminated or truncated:
-            fail = True
-            print(f"Game Over! played time {time.time() - start_time}")
-            break
+            done = True
+            print(f"Game Over! played time {time.time() - start_time}", f'step:{step}, terminated:{terminated}, truncated:{truncated}, info:{info},state:{state}')

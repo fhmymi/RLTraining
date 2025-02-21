@@ -1,0 +1,106 @@
+import random
+
+import numpy as np
+import gymnasium as gym
+from tqdm import tqdm
+import matplotlib
+import matplotlib.pyplot as plt
+
+import pickle
+
+matplotlib.use('TkAgg')
+
+Num = 15
+rate = 0.8
+factor = 0.99
+
+p_bound = np.linspace(-2.4, 2.4, Num - 1)
+v_bound = np.linspace(-3, 3, Num - 1)
+ang_bound = np.linspace(-0.5, 0.5, Num - 1)
+angv_bound = np.linspace(-2.0, 2.0, Num - 1)
+
+
+def state_dig(state):  # 离散化
+    p, v, ang, angv = state
+    digital_state = (np.digitize(p, p_bound),
+                     np.digitize(v, v_bound),
+                     np.digitize(ang, ang_bound),
+                     np.digitize(angv, angv_bound))
+    return digital_state
+
+
+class QTableAgent:
+    def __init__(self, action_space, n_states, NUM_DIGITIZED=Num):
+        self.action_space = action_space
+        self.n_states = n_states
+        self.NUM_DIGITIZED = NUM_DIGITIZED
+        self.q_table = np.zeros((NUM_DIGITIZED, NUM_DIGITIZED, NUM_DIGITIZED, NUM_DIGITIZED, action_space))
+
+    def q_learning(self, state, action, reward, next_state):
+        current_q = self.q_table[state][action]
+        self.q_table[state][action] += rate * (reward + factor * max(self.q_table[next_state]) - current_q)
+
+    def choose_action(self, state, episode):
+        eps = 1 / (episode + 1)
+        delta = random.random()
+        # print(f"本次生成的delta：{delta}")
+        if delta <= eps:
+            action = random.randrange(self.action_space)
+        else:
+            action = np.argmax(self.q_table[state])
+        return action
+
+
+if __name__ == '__main__':
+    env = gym.make('CartPole-v1', render_mode='rgb_array')
+    env.reset()
+    action_space = env.action_space.n
+    n_states = env.observation_space.shape[0]
+    agent = QTableAgent(action_space, n_states)
+
+    max_episodes = 500
+
+    continue_success_episodes = 0
+    log_chart = []
+    max_step = 0
+    episode_tqdm = tqdm(range(max_episodes))
+    for episode in episode_tqdm:
+        state, _ = env.reset()
+        state = state_dig(state)
+        step = 0
+        done = False
+        while not done:
+            env.render()
+            action = agent.choose_action(state, episode)
+            next_state, reward, terminated, truncated, info = env.step(action)
+
+            if terminated or truncated:
+                reward = -(step / 10) if not truncated else 10
+                if step >= 200:
+                    continue_success_episodes = 0
+                else:
+                    continue_success_episodes += 1
+                if step > max_step:
+                    max_step = step
+                log_chart.append((episode, step))
+            else:
+                r1 = abs(next_state[0])
+                r2 = abs(next_state[1])
+                r3 = abs(next_state[2])
+                r4 = abs(next_state[3])
+                reward = - r1 * r2 * r3 * r4
+
+            next_state = state_dig(next_state)
+            agent.q_learning(state, action, reward, next_state)
+            state = next_state
+            step += 1
+            done = terminated or truncated
+
+
+        episode_tqdm.set_description(f"Episode {episode} | Max Step: {max_step}| CSE:{continue_success_episodes}")
+    # 把agent.q_table使用pickle保存
+    with open('q_table.pkl', 'wb') as f:
+        pickle.dump(agent.q_table, f)
+    plt.plot([x[0] for x in log_chart], [x[1] for x in log_chart])
+    # plt.yscale('log')  # 设置y轴为对数刻度
+    plt.show()

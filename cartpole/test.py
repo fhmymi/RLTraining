@@ -1,8 +1,11 @@
 import gymnasium as gym
 import random
 import numpy as np
-
-Num = 10
+from tqdm import tqdm
+import matplotlib
+import matplotlib.pyplot as plt
+matplotlib.use('TkAgg')
+Num = 6
 rate = 0.5
 factor = 0.9
 
@@ -27,8 +30,8 @@ if __name__ == '__main__':
 
     action_space_dim = env.action_space.n
     q_table = np.zeros((Num, Num, Num, Num, action_space_dim))
-
-    for i in range(3000):
+    log_chart = []
+    for i in tqdm(range(3000)):
         state, _ = env.reset()
         digital_state = state_dig(state)
 
@@ -62,5 +65,15 @@ if __name__ == '__main__':
             digital_state = next_digital_state
 
             if done:
-                print(step)
+                log_chart.append((i, step))
+                # print(step)
                 break
+
+    #把log_chart绘制成图
+
+    plt.plot([x[0] for x in log_chart], [x[1] for x in log_chart])
+    plt.yscale('log')  # 设置y轴为对数刻度
+    plt.show()
+
+    pass
+
